@@ -11,6 +11,15 @@ export function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const { data: wsData, connected } = useWebSocket('ws://localhost:8000/ws/live');
 
+  const resolveAlert = async (id: number) => {
+    try {
+      await fetch(`http://localhost:8000/api/alerts/${id}/resolve`, { method: 'PUT' });
+      setAlerts(prev => prev.filter(a => a.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     // Initial fetch
     api.get('/analytics/summary').then(setSummary).catch(console.error);
@@ -132,11 +141,18 @@ export function Dashboard() {
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {alerts.length === 0 && <p className="text-textMuted text-sm">No recent alerts.</p>}
               {alerts.map(alert => (
-                <div key={alert.id} className="p-3 bg-danger/10 border border-danger/20 rounded-md">
-                  <div className="flex justify-between items-start">
+                <div key={alert.id} className="p-3 bg-danger/10 border border-danger/20 rounded-md flex items-center justify-between group">
+                  <div>
                     <p className="text-sm text-white font-medium">{alert.message}</p>
-                    <span className="text-xs text-textMuted ml-2">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-xs text-textMuted">{new Date(alert.timestamp).toLocaleTimeString()}</span>
                   </div>
+                  <button 
+                    onClick={() => resolveAlert(alert.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-textMuted hover:text-white transition-opacity"
+                    title="Resolve Alert"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>

@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 def get_recent_alerts(limit: int = 20):
     db = SessionLocal()
     try:
-        alerts = db.query(AlertModel).order_by(AlertModel.timestamp.desc()).limit(limit).all()
+        alerts = db.query(AlertModel).filter_by(resolved=False).order_by(AlertModel.timestamp.desc()).limit(limit).all()
         return [
             {
                 "id": a.id,
@@ -20,5 +20,18 @@ def get_recent_alerts(limit: int = 20):
             }
             for a in alerts
         ]
+    finally:
+        db.close()
+
+@router.put("/{alert_id}/resolve")
+def resolve_alert(alert_id: int):
+    db = SessionLocal()
+    try:
+        alert = db.query(AlertModel).filter(AlertModel.id == alert_id).first()
+        if alert:
+            alert.resolved = True
+            db.commit()
+            return {"status": "success"}
+        return {"status": "not_found"}
     finally:
         db.close()
