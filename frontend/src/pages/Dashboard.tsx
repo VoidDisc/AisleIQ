@@ -8,6 +8,7 @@ export function Dashboard() {
   const [summary, setSummary] = useState({ total_visits: 0, average_dwell_time: 0 });
   const [cameras, setCameras] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const { data: wsData, connected } = useWebSocket('ws://localhost:8000/ws/live');
 
   useEffect(() => {
@@ -15,15 +16,18 @@ export function Dashboard() {
     api.get('/analytics/summary').then(setSummary).catch(console.error);
     api.get('/cameras').then(setCameras).catch(console.error);
     api.get('/analytics/history').then(setHistory).catch(console.error);
+    api.get('/alerts').then(setAlerts).catch(console.error);
   }, []);
 
   // Update from WebSocket
   useEffect(() => {
     if (wsData) {
       if (wsData.type === 'analytics_summary') {
-        setSummary(wsData.data);
+        setSummary(wsData.data || wsData.payload);
       } else if (wsData.type === 'cameras_update') {
-        setCameras(wsData.data);
+        setCameras(wsData.data || wsData.payload);
+      } else if (wsData.type === 'new_alert') {
+        setAlerts(prev => [(wsData.data || wsData.payload), ...prev].slice(0, 20));
       }
     }
   }, [wsData]);
@@ -104,21 +108,38 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
-          <h3 className="text-lg font-bold text-white mb-4">Zone Visits</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2D2D2D" />
-                <XAxis dataKey="zone_id" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #2D2D2D' }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Bar dataKey="visits" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="space-y-8">
+          <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
+            <h3 className="text-lg font-bold text-white mb-4">Zone Visits</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={history}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2D2D2D" />
+                  <XAxis dataKey="zone_id" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #2D2D2D' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Bar dataKey="visits" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
+            <h3 className="text-lg font-bold text-danger mb-4">Active Alerts</h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+              {alerts.length === 0 && <p className="text-textMuted text-sm">No recent alerts.</p>}
+              {alerts.map(alert => (
+                <div key={alert.id} className="p-3 bg-danger/10 border border-danger/20 rounded-md">
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm text-white font-medium">{alert.message}</p>
+                    <span className="text-xs text-textMuted ml-2">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

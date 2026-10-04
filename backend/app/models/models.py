@@ -44,3 +44,14 @@ class VisitModel(Base):
 
     camera = relationship("CameraModel", back_populates="visits")
     zone = relationship("ZoneModel", back_populates="visits")
+
+class AlertModel(Base):
+    __tablename__ = "alerts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(String) # e.g. "dwell_time", "crowd"
+    message = Column(String)
+    zone_id = Column(String, index=True)
+    camera_id = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    resolved = Column(Boolean, default=False)

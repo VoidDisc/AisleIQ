@@ -87,6 +87,15 @@ class VisitManager:
             session.status = status
             self.history.append(session)
             
+            # Check for dwell time alert (prototype hardcoded threshold: 60 seconds)
+            if session.duration > 60:
+                self._create_alert(
+                    alert_type="dwell_time",
+                    message=f"Person {session.track_id} lingered in {session.zone_id} for {session.duration:.1f}s",
+                    zone_id=session.zone_id,
+                    camera_id=session.camera_id
+                )
+            
             # Persist to database
             from app.database import SessionLocal
             from app.models.models import VisitModel
@@ -112,5 +121,42 @@ class VisitManager:
         else:
             # Drop short sessions
             pass
+
+    def _create_alert(self, alert_type: str, message: str, zone_id: str, camera_id: str):
+        from app.database import SessionLocal
+        from app.models.models import AlertModel
+        from app.services.event_manager import event_manager
+        import asyncio
+        
+        db = SessionLocal()
+        try:
+            alert = AlertModel(
+                type=alert_type,
+                message=message,
+                zone_id=zone_id,
+                camera_id=camera_id
+            )
+            db.add(alert)
+            db.commit()
+            db.refresh(alert)
+            
+            alert_data = {
+                "id": alert.id,
+                "type": alert.type,
+                "message": alert.message,
+                "zone_id": alert.zone_id,
+                "timestamp": alert.timestamp.isoformat()
+            }
+            
+            # We are likely running in a background thread
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(event_manager.broadcast("new_alert", alert_data))
+            except RuntimeError:
+                pass # not in async context, safely ignore broadcast
+        except Exception as e:
+            logger.error(f"Failed to create alert: {e}")
+        finally:
+            db.close()
 
 visit_manager = VisitManager()
