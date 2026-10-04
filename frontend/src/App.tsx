@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map } from 'lucide-react';
+import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map, LayoutGrid } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { Cameras } from './pages/Cameras';
 import { ZoneEditor } from './pages/ZoneEditor';
 import { Settings } from './pages/Settings';
+import { LiveView } from './pages/LiveView';
 import { api } from './api/client';
 
 function App() {
@@ -38,6 +39,10 @@ function App() {
               <LayoutDashboard size={20} />
               <span>Overview</span>
             </NavLink>
+            <NavLink to="/live" className={navClass}>
+              <LayoutGrid size={20} />
+              <span>Live Grid</span>
+            </NavLink>
             <NavLink to="/cameras" className={navClass}>
               <Video size={20} />
               <span>Cameras</span>
@@ -64,6 +69,7 @@ function App() {
         <main className="flex-1 p-8 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/live" element={<LiveView />} />
             <Route path="/cameras" element={<Cameras />} />
             <Route path="/zones" element={<ZoneEditor />} />
             <Route path="/settings" element={<Settings />} />
