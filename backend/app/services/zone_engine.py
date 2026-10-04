@@ -7,6 +7,41 @@ class ZoneEngine:
         self.zones: Dict[str, List[ZoneResponse]] = {} # grouped by camera_id
         # Cache shapely Polygons
         self._polygons: Dict[str, Polygon] = {}
+        self._load_from_db()
+
+    def _load_from_db(self):
+        from app.database import SessionLocal
+        from app.models.models import ZoneModel
+        import json
+        
+        db = SessionLocal()
+        try:
+            zones = db.query(ZoneModel).all()
+            for z in zones:
+                if z.camera_id not in self.zones:
+                    self.zones[z.camera_id] = []
+                
+                polygon_data = json.loads(z.polygon_json) if z.polygon_json else []
+                # Don't convert them to objects if the schema expects tuples/lists. 
+                # Let's check schemas/zone.py later if there's an error. 
+                # Wait, earlier we were adding ZoneResponse with dicts.
+                
+                zone_resp = ZoneResponse(
+                    id=z.id,
+                    camera_id=z.camera_id,
+                    name=z.name,
+                    polygon=polygon_data,
+                    color=z.color,
+                    enabled=z.enabled
+                )
+                self.zones[z.camera_id].append(zone_resp)
+                if len(zone_resp.polygon) >= 3:
+                    self._polygons[zone_resp.id] = Polygon(zone_resp.polygon)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to load zones from DB: {e}")
+        finally:
+            db.close()
 
     def add_zone(self, zone: ZoneResponse):
         if zone.camera_id not in self.zones:
