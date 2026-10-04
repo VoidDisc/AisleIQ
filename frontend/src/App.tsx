@@ -4,6 +4,7 @@ import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map } from 
 import { Dashboard } from './pages/Dashboard';
 import { Cameras } from './pages/Cameras';
 import { ZoneEditor } from './pages/ZoneEditor';
+import { Settings } from './pages/Settings';
 import { api } from './api/client';
 
 function App() {
@@ -65,7 +66,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/cameras" element={<Cameras />} />
             <Route path="/zones" element={<ZoneEditor />} />
-            <Route path="/settings" element={<div className="text-white">Settings Placeholder</div>} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
       </div>
