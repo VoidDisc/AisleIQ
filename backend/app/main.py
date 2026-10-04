@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api import cameras
+from app.api import cameras, zones, analytics
 
 app = FastAPI(title=settings.project_name)
 
@@ -18,3 +18,5 @@ def health_check():
     return {"status": "ok", "project": settings.project_name}
 
 app.include_router(cameras.router)
+app.include_router(zones.router)
+app.include_router(analytics.router)

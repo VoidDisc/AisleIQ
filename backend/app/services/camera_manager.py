@@ -23,6 +23,7 @@ class CameraManager:
             "enabled": True,
             "status": CameraStatus.STOPPED,
             "processing_fps": 0.0,
+            "active_tracks": 0,
             "last_error": None,
             "created_at": now,
             "last_seen_at": None,
@@ -38,6 +39,7 @@ class CameraManager:
                 worker = self.workers[cam_id]
                 data["status"] = CameraStatus(worker.status)
                 data["processing_fps"] = worker.processing_fps
+                data["active_tracks"] = worker.active_tracks_count
                 data["last_error"] = worker.last_error
             result.append(CameraResponse(**data))
         return result
@@ -51,6 +53,7 @@ class CameraManager:
             worker = self.workers[camera_id]
             data["status"] = CameraStatus(worker.status)
             data["processing_fps"] = worker.processing_fps
+            data["active_tracks"] = worker.active_tracks_count
             data["last_error"] = worker.last_error
             
         return CameraResponse(**data)

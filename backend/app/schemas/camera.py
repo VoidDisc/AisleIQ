@@ -29,6 +29,7 @@ class CameraResponse(CameraBase):
     enabled: bool = True
     status: CameraStatus = CameraStatus.STOPPED
     processing_fps: float = 0.0
+    active_tracks: int = 0
     last_error: Optional[str] = None
     created_at: datetime
     last_seen_at: Optional[datetime] = None

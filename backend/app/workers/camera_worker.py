@@ -3,7 +3,11 @@ import time
 import cv2
 import logging
 from typing import Optional
+from datetime import datetime
 from app.config import settings
+from app.services.detector import Detector
+from app.services.zone_engine import zone_engine
+from app.services.visit_manager import visit_manager
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,8 @@ class CameraWorker:
         self.processing_fps = 0.0
         self.last_error: Optional[str] = None
         self.capture: Optional[cv2.VideoCapture] = None
+        
+        self.active_tracks_count = 0
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -46,6 +52,15 @@ class CameraWorker:
         retry_delays = [1, 2, 4, 8, 15, 30]
         retry_count = 0
         
+        # Load detector inside the thread to avoid blocking API and threading issues
+        try:
+            detector = Detector(model_name=settings.model_name, conf_threshold=settings.confidence_threshold)
+        except Exception as e:
+            logger.error(f"Failed to load detector for camera {self.camera_id}: {e}")
+            self.last_error = f"Model load error: {str(e)}"
+            self.status = "error"
+            return
+            
         target_fps = settings.target_fps
         frame_time = 1.0 / target_fps if target_fps > 0 else 0
 
@@ -102,8 +117,26 @@ class CameraWorker:
             if settings.resize_width > 0 and settings.resize_height > 0:
                 frame = cv2.resize(frame, (settings.resize_width, settings.resize_height))
 
-            # TODO: Phase 3 - Detect & Track
-            # TODO: Phase 4 - Calculate Zone Membership
+            # --- DETECT & TRACK ---
+            tracked_objects = detector.detect_and_track(frame)
+            self.active_tracks_count = len(tracked_objects)
+            
+            # --- CALCULATE ZONE MEMBERSHIP ---
+            frame_height, frame_width = frame.shape[:2]
+            tracked_objects = zone_engine.calculate_zone_membership(
+                camera_id=self.camera_id, 
+                tracks=tracked_objects, 
+                frame_width=frame_width, 
+                frame_height=frame_height
+            )
+            
+            # --- PROCESS OBSERVATIONS ---
+            current_time = datetime.utcnow()
+            visit_manager.process_observations(
+                camera_id=self.camera_id, 
+                tracks=tracked_objects, 
+                current_time=current_time
+            )
             
             # Sleep to maintain target FPS
             sleep_time = frame_time - (time.time() - start_time)
@@ -122,3 +155,4 @@ class CameraWorker:
             self.capture.release()
             self.capture = None
         self.status = "stopped"
+        visit_manager.handle_camera_stop(self.camera_id, datetime.utcnow())
