@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, PlayCircle, X } from 'lucide-react';
 
 export function Dashboard() {
   const [summary, setSummary] = useState({ total_visits: 0, average_dwell_time: 0 });
@@ -10,6 +10,7 @@ export function Dashboard() {
   const [history, setHistory] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [timeFilter, setTimeFilter] = useState<'all' | '24h'>('all');
+  const [playingClip, setPlayingClip] = useState<string | null>(null);
   const { data: wsData, connected } = useWebSocket('ws://localhost:8000/ws/live');
 
   useEffect(() => {
@@ -158,13 +159,20 @@ export function Dashboard() {
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {alerts.length === 0 && <p className="text-textMuted text-sm">No recent alerts.</p>}
               {alerts.map(alert => (
-                <div key={alert.id} className="p-3 bg-danger/10 border border-danger/20 rounded-md flex items-center justify-between group">
-                  <div>
-                    <p className="text-sm text-white font-medium">{alert.message}</p>
-                    <span className="text-xs text-textMuted">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                <div 
+                  key={alert.id} 
+                  className="p-3 bg-danger/10 border border-danger/20 rounded-md flex items-center justify-between group cursor-pointer hover:bg-danger/20 transition-colors"
+                  onClick={() => setPlayingClip(alert.id.toString())}
+                >
+                  <div className="flex items-center gap-3">
+                    <PlayCircle size={20} className="text-danger" />
+                    <div>
+                      <p className="text-sm text-white font-medium">{alert.message}</p>
+                      <span className="text-xs text-textMuted">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                    </div>
                   </div>
                   <button 
-                    onClick={() => resolveAlert(alert.id)}
+                    onClick={(e) => { e.stopPropagation(); resolveAlert(alert.id); }}
                     className="opacity-0 group-hover:opacity-100 p-1 text-textMuted hover:text-white transition-opacity"
                     title="Resolve Alert"
                   >
@@ -176,6 +184,38 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Video Clip Modal */}
+      {playingClip && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-surface border border-surfaceHighlight rounded-lg w-full max-w-3xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-surfaceHighlight">
+              <h3 className="text-white font-bold text-lg">Alert Video Clip (10s)</h3>
+              <button 
+                onClick={() => setPlayingClip(null)}
+                className="text-textMuted hover:text-white transition-colors p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="bg-black aspect-video relative">
+              <video 
+                src={`http://localhost:8000/api/clips/${playingClip}.mp4`} 
+                controls 
+                autoPlay 
+                className="w-full h-full"
+                onError={(e) => {
+                  const target = e.target as HTMLVideoElement;
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-textMuted">Clip not found or still processing...</div>';
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

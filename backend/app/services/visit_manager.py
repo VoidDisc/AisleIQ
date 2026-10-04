@@ -164,6 +164,12 @@ class VisitManager:
                 loop.create_task(event_manager.broadcast("new_alert", alert_data))
             except RuntimeError:
                 pass # not in async context, safely ignore broadcast
+                
+            # Phase 21: Trigger clip saving
+            from app.services.camera_manager import camera_manager
+            if camera_id in camera_manager.workers:
+                camera_manager.workers[camera_id].save_clip(str(alert.id))
+                
         except Exception as e:
             logger.error(f"Failed to create alert: {e}")
         finally:

@@ -4,6 +4,7 @@ import cv2
 import logging
 from typing import Optional
 from datetime import datetime
+from collections import deque
 from app.config import settings
 from app.services.detector import Detector
 from app.services.zone_engine import zone_engine
@@ -29,6 +30,10 @@ class CameraWorker:
         self.active_tracks_count = 0
         self.latest_frame = None
         self.latest_tracks = []
+        
+        # Phase 21: NVR frame buffer (10 seconds @ target_fps)
+        buffer_size = settings.target_fps * 10 if settings.target_fps > 0 else 150
+        self.frame_buffer = deque(maxlen=buffer_size)
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -187,6 +192,9 @@ class CameraWorker:
                 if track.get("zone_id"):
                     cv2.putText(display_frame, f"Zone: {track['zone_id']}", (int(x1), int(y2) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
             
+            # Phase 21: Append to NVR buffer
+            self.frame_buffer.append(display_frame.copy())
+            
             _, buffer = cv2.imencode('.jpg', display_frame)
             self.latest_frame = buffer.tobytes()
             
@@ -208,3 +216,29 @@ class CameraWorker:
             self.capture = None
         self.status = "stopped"
         visit_manager.handle_camera_stop(self.camera_id, datetime.utcnow())
+        
+    def save_clip(self, alert_id: str):
+        if not self.frame_buffer:
+            return
+            
+        frames = list(self.frame_buffer)
+        
+        def _write_video():
+            import os
+            os.makedirs("data/clips", exist_ok=True)
+            filepath = f"data/clips/{alert_id}.mp4"
+            
+            if not frames:
+                return
+                
+            height, width = frames[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            fps = settings.target_fps if settings.target_fps > 0 else 15
+            out = cv2.VideoWriter(filepath, fourcc, fps, (width, height))
+            
+            for f in frames:
+                out.write(f)
+            out.release()
+            logger.info(f"Saved clip for alert {alert_id} to {filepath}")
+            
+        threading.Thread(target=_write_video, daemon=True).start()

@@ -107,3 +107,14 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         event_manager.disconnect(websocket)
+
+from fastapi.responses import FileResponse
+import os
+
+@app.get("/api/clips/{clip_name}")
+def get_clip(clip_name: str):
+    filepath = f"data/clips/{clip_name}"
+    if not os.path.exists(filepath):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Clip not found")
+    return FileResponse(filepath, media_type="video/mp4")
