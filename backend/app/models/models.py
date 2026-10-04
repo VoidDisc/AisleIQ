@@ -65,3 +65,10 @@ class UserModel(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String) # 'admin' or 'viewer'
+
+class TransactionModel(Base):
+    __tablename__ = "transactions"
+    
+    id = Column(String, primary_key=True, index=True)
+    amount = Column(Float, default=0.0)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)

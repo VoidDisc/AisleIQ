@@ -5,7 +5,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, PlayCircle, X } from 'lucide-react';
 
 export function Dashboard() {
-  const [summary, setSummary] = useState({ total_visits: 0, average_dwell_time: 0 });
+  const [summary, setSummary] = useState({ 
+    total_visits: 0, 
+    average_dwell_time: 0, 
+    transactions: 0, 
+    revenue: 0, 
+    conversion_rate: 0 
+  });
   const [cameras, setCameras] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -16,9 +22,19 @@ export function Dashboard() {
   useEffect(() => {
     // Initial fetch
     const hoursParam = timeFilter === '24h' ? '?hours=24' : '';
-    api.get(`/analytics/summary${hoursParam}`).then(setSummary).catch(console.error);
+    api.get(`/analytics/history${hoursParam}`).then((data: any) => {
+        setHistory(data.zones || []);
+        if (data.business) {
+            setSummary({
+                total_visits: data.business.total_visits || 0,
+                average_dwell_time: data.zones.reduce((acc: number, z: any) => acc + z.avg_dwell_time, 0) / (data.zones.length || 1),
+                transactions: data.business.transactions || 0,
+                revenue: data.business.revenue || 0,
+                conversion_rate: data.business.conversion_rate || 0
+            });
+        }
+    }).catch(console.error);
     api.get('/cameras').then(setCameras).catch(console.error);
-    api.get(`/analytics/history${hoursParam}`).then(setHistory).catch(console.error);
     api.get('/alerts').then(setAlerts).catch(console.error);
   }, [timeFilter]);
   const resolveAlert = async (id: number) => {
@@ -30,13 +46,6 @@ export function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    // Initial fetch
-    api.get('/analytics/summary').then(setSummary).catch(console.error);
-    api.get('/cameras').then(setCameras).catch(console.error);
-    api.get('/analytics/history').then(setHistory).catch(console.error);
-    api.get('/alerts').then(setAlerts).catch(console.error);
-  }, []);
 
   // Update from WebSocket
   useEffect(() => {
@@ -83,17 +92,25 @@ export function Dashboard() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
-          <h3 className="text-sm font-medium text-textMuted mb-2">Total Zone Visits</h3>
+          <h3 className="text-sm font-medium text-textMuted mb-2">Total Visits</h3>
           <p className="text-3xl font-bold text-white">{summary.total_visits}</p>
+        </div>
+        <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
+          <h3 className="text-sm font-medium text-textMuted mb-2">Conversion</h3>
+          <p className="text-3xl font-bold text-success">{summary.conversion_rate}%</p>
+        </div>
+        <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
+          <h3 className="text-sm font-medium text-textMuted mb-2">Revenue</h3>
+          <p className="text-3xl font-bold text-white">${summary.revenue.toFixed(2)}</p>
         </div>
         <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
           <h3 className="text-sm font-medium text-textMuted mb-2">Avg. Dwell Time</h3>
           <p className="text-3xl font-bold text-white">{summary.average_dwell_time.toFixed(1)}s</p>
         </div>
         <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
-          <h3 className="text-sm font-medium text-textMuted mb-2">Active Cameras</h3>
+          <h3 className="text-sm font-medium text-textMuted mb-2">Cameras</h3>
           <p className="text-3xl font-bold text-white">{activeCameras} / {cameras.length}</p>
         </div>
       </div>

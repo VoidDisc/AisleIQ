@@ -68,3 +68,8 @@ AisleIQ is an end-to-end Computer Vision analytics platform built for retail and
 ### Phase 25: Queue Management & Overcrowding
 *   **Capacity Limits:** Allow users to define a `max_capacity` limit on individual tracking zones.
 *   **Crowd Alerts:** Trigger an immediate alert if the number of simultaneous dwell sessions inside a zone exceeds its configured threshold.
+
+### Phase 26: Point of Sale (POS) & Business Metrics Integration
+*   **Webhook Ingestion:** Create `/api/webhooks/pos` to ingest real-time sales transactions from external registers.
+*   **Conversion Analytics:** Correlate the total number of unique store visits with total transaction volume.
+*   **Business Dashboard:** Introduce `Revenue` and `Conversion Rate` UI widgets to the primary Dashboard.
