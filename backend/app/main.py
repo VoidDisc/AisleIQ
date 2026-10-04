@@ -7,11 +7,37 @@ from app.database import engine, Base
 from app.models import models
 from app.services.event_manager import event_manager
 
+import asyncio
+from app.services.camera_manager import camera_manager
+from app.services.visit_manager import visit_manager
+
+async def broadcast_loop():
+    while True:
+        await asyncio.sleep(1)
+        if event_manager.active_connections:
+            # Broadcast cameras
+            cameras_data = [c.model_dump() for c in camera_manager.get_cameras()]
+            await event_manager.broadcast("cameras_update", cameras_data)
+            
+            # Broadcast summary
+            visits = visit_manager.history
+            total_visits = len(visits)
+            avg_dwell_time = sum(v.duration for v in visits) / total_visits if total_visits > 0 else 0
+            
+            summary_data = {
+                "total_visits": total_visits,
+                "average_dwell_time": avg_dwell_time
+            }
+            await event_manager.broadcast("analytics_summary", summary_data)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB Tables
     Base.metadata.create_all(bind=engine)
+    # Start broadcast loop
+    task = asyncio.create_task(broadcast_loop())
     yield
+    task.cancel()
 
 app = FastAPI(title=settings.project_name, lifespan=lifespan)
 
