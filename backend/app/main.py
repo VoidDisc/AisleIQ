@@ -2,10 +2,21 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
-from app.api import cameras, zones, analytics, settings as settings_api, export, stream, alerts
+from app.api import cameras, zones, analytics, settings as settings_api, export, stream, alerts, logs
 from app.database import engine, Base
 from app.models import models
 from app.services.event_manager import event_manager
+import logging
+
+# Set up file logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler("aisleiq.log"),
+        logging.StreamHandler()
+    ]
+)
 
 import asyncio
 from app.services.camera_manager import camera_manager
@@ -67,6 +78,7 @@ app.include_router(settings_api.router)
 app.include_router(export.router)
 app.include_router(stream.router)
 app.include_router(alerts.router)
+app.include_router(logs.router)
 
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):

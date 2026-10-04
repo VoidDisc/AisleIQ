@@ -12,12 +12,24 @@ export function Settings() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [refreshingLogs, setRefreshingLogs] = useState(false);
+
+  const fetchLogs = () => {
+    setRefreshingLogs(true);
+    api.get('/logs')
+      .then(data => setLogs(data.logs))
+      .catch(console.error)
+      .finally(() => setRefreshingLogs(false));
+  };
 
   useEffect(() => {
     api.get('/settings').then(data => {
       setSettings(data);
       setLoading(false);
     }).catch(console.error);
+    
+    fetchLogs();
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -116,6 +128,26 @@ export function Settings() {
           </button>
         </div>
       </form>
+      
+      <div className="mt-8 bg-surface p-6 rounded-lg border border-surfaceHighlight">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-white">System Logs</h3>
+          <button 
+            type="button" 
+            onClick={fetchLogs}
+            disabled={refreshingLogs}
+            className="text-sm px-3 py-1 bg-background border border-surfaceHighlight text-white rounded hover:bg-surfaceHighlight"
+          >
+            {refreshingLogs ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        <div className="bg-[#1e1e1e] rounded border border-surfaceHighlight p-4 h-64 overflow-y-auto custom-scrollbar font-mono text-xs text-green-400">
+          {logs.length === 0 && <span className="text-textMuted">No logs found.</span>}
+          {logs.map((log, i) => (
+            <div key={i} className="whitespace-pre-wrap">{log}</div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
