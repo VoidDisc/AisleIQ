@@ -2,8 +2,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
-from app.api import cameras, zones, analytics, settings as settings_api, export, stream, alerts, logs
-from app.database import engine, Base
+from app.api import cameras, zones, analytics, settings as settings_api, export, stream, alerts, logs, auth
+from app.database import engine, Base, SessionLocal
 from app.models import models
 from app.services.event_manager import event_manager
 import logging
@@ -52,6 +52,14 @@ async def broadcast_loop():
 async def lifespan(app: FastAPI):
     # Initialize DB Tables
     Base.metadata.create_all(bind=engine)
+    
+    # Init default users
+    db = SessionLocal()
+    try:
+        from app.api.auth import init_db_users
+        init_db_users(db)
+    finally:
+        db.close()
     # Start broadcast loop
     task = asyncio.create_task(broadcast_loop())
     yield
@@ -79,6 +87,7 @@ app.include_router(export.router)
 app.include_router(stream.router)
 app.include_router(alerts.router)
 app.include_router(logs.router)
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):

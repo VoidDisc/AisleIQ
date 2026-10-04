@@ -1,14 +1,16 @@
 import csv
 from io import StringIO
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from app.api.auth import get_current_admin
+from app.models.models import UserModel
 from app.database import SessionLocal
 from app.models.models import VisitModel
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 @router.get("/visits.csv")
-def export_visits_csv():
+def export_visits_csv(current_user: UserModel = Depends(get_current_admin)):
     db = SessionLocal()
     try:
         visits = db.query(VisitModel).all()

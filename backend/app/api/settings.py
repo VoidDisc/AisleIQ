@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from app.api.auth import get_current_admin
+from app.models.models import UserModel
 from app.config import settings
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -11,7 +13,7 @@ class SettingsUpdate(BaseModel):
     min_visit_duration: float
 
 @router.get("/")
-def get_settings():
+def get_settings(current_user: UserModel = Depends(get_current_admin)):
     return {
         "confidence_threshold": settings.confidence_threshold,
         "max_fps": settings.max_fps,
@@ -20,7 +22,7 @@ def get_settings():
     }
 
 @router.put("/")
-def update_settings(new_settings: SettingsUpdate):
+def update_settings(new_settings: SettingsUpdate, current_user: UserModel = Depends(get_current_admin)):
     # In a real app, we'd save these to a database or environment file
     # For now, we update the in-memory settings singleton
     settings.confidence_threshold = new_settings.confidence_threshold

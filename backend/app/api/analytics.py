@@ -1,16 +1,18 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import List
 from app.schemas.visit import VisitSession
 from app.services.visit_manager import visit_manager
+from app.api.auth import get_current_user
+from app.models.models import UserModel
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 @router.get("/visits", response_model=List[VisitSession])
-def get_visits():
+def get_visits(current_user: UserModel = Depends(get_current_user)):
     return visit_manager.history
 
 @router.get("/summary")
-def get_summary(hours: int = None):
+def get_summary(hours: int = None, current_user: UserModel = Depends(get_current_user)):
     from app.database import SessionLocal
     from app.models.models import VisitModel
     from sqlalchemy.sql import func
@@ -34,7 +36,7 @@ def get_summary(hours: int = None):
         db.close()
 
 @router.get("/history")
-def get_history(hours: int = None):
+def get_history(hours: int = None, current_user: UserModel = Depends(get_current_user)):
     from app.database import SessionLocal
     from app.models.models import VisitModel
     from sqlalchemy.sql import func

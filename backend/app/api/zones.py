@@ -5,12 +5,13 @@ import json
 from app.schemas.zone import ZoneCreate, ZoneResponse, ZoneUpdate
 from app.services.zone_engine import zone_engine
 from app.database import SessionLocal
-from app.models.models import ZoneModel
+from app.models.models import ZoneModel, UserModel
+from app.api.auth import get_current_user, get_current_admin
 
 router = APIRouter(tags=["zones"])
 
 @router.post("/api/cameras/{camera_id}/zones", response_model=ZoneResponse)
-def create_zone(camera_id: str, zone: ZoneCreate):
+def create_zone(camera_id: str, zone: ZoneCreate, current_user: UserModel = Depends(get_current_admin)):
     if zone.camera_id != camera_id:
         raise HTTPException(status_code=400, detail="Camera ID mismatch")
         
@@ -41,7 +42,7 @@ def create_zone(camera_id: str, zone: ZoneCreate):
     return zone_response
 
 @router.get("/api/cameras/{camera_id}/zones", response_model=List[ZoneResponse])
-def get_zones(camera_id: str):
+def get_zones(camera_id: str, current_user: UserModel = Depends(get_current_user)):
     db = SessionLocal()
     try:
         zones = db.query(ZoneModel).filter(ZoneModel.camera_id == camera_id).all()
@@ -62,7 +63,7 @@ def get_zones(camera_id: str):
         db.close()
 
 @router.delete("/api/zones/{zone_id}")
-def delete_zone(zone_id: str, camera_id: str):
+def delete_zone(zone_id: str, camera_id: str, current_user: UserModel = Depends(get_current_admin)):
     db = SessionLocal()
     try:
         db_zone = db.query(ZoneModel).filter(ZoneModel.id == zone_id).first()

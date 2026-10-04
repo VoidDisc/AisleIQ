@@ -1,0 +1,12 @@
+2026-10-05 01:10:44,303 [INFO] app.services.event_manager: WebSocket connected. Total clients: 1
+2026-10-05 01:10:44,313 [INFO] app.services.event_manager: WebSocket disconnected. Total clients: 0
+2026-10-05 01:10:44,323 [INFO] app.services.event_manager: WebSocket connected. Total clients: 1
+2026-10-05 01:10:44,324 [INFO] app.services.event_manager: WebSocket disconnected. Total clients: 0
+2026-10-05 01:10:47,301 [INFO] app.services.event_manager: WebSocket connected. Total clients: 1
+2026-10-05 01:12:34,707 [INFO] app.services.event_manager: WebSocket disconnected. Total clients: 0
+2026-10-05 01:18:55,848 [WARNING] passlib.handlers.bcrypt: (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/sakethreddy/Downloads/SINGULARITY/Vistara/backend/venv/lib/python3.14/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
