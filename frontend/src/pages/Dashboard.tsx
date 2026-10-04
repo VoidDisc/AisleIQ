@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Download } from 'lucide-react';
 
 export function Dashboard() {
   const [summary, setSummary] = useState({ total_visits: 0, average_dwell_time: 0 });
@@ -36,8 +37,18 @@ export function Dashboard() {
           <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
           <p className="text-textMuted mt-1">Monitor real-time shopper analytics.</p>
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-medium border ${connected ? 'bg-success/10 text-success border-success/20' : 'bg-warning/10 text-warning border-warning/20'}`}>
-          {connected ? 'Live' : 'Reconnecting...'}
+        <div className="flex items-center gap-4">
+          <a 
+            href="http://localhost:8000/api/export/visits.csv" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-surfaceHighlight text-sm font-medium text-white rounded hover:bg-surfaceHighlight transition-colors"
+          >
+            <Download size={16} /> Export CSV
+          </a>
+          <div className={`px-3 py-1 rounded-full text-xs font-medium border ${connected ? 'bg-success/10 text-success border-success/20' : 'bg-warning/10 text-warning border-warning/20'}`}>
+            {connected ? 'Live' : 'Reconnecting...'}
+          </div>
         </div>
       </div>
       
