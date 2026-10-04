@@ -23,7 +23,14 @@ class VisitManager:
         # Track which tracks were seen in this frame
         seen_track_ids = set()
 
+        # Phase 23: Parse staff colors
+        staff_colors = [c.strip().lower() for c in settings.staff_uniform_colors.split(',')] if settings.staff_uniform_colors else []
+
         for track in tracks:
+            # Phase 23: Exclude staff from analytics
+            if track.get("dominant_color") and track["dominant_color"].lower() in staff_colors:
+                continue
+                
             track_id = track["track_id"]
             zone_id = track.get("zone_id")
             seen_track_ids.add(track_id)

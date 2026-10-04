@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 from datetime import datetime
 from collections import deque
+import numpy as np
 from app.config import settings
 from app.services.detector import Detector
 from app.services.zone_engine import zone_engine
@@ -34,6 +35,9 @@ class CameraWorker:
         # Phase 21: NVR frame buffer (10 seconds @ target_fps)
         buffer_size = settings.target_fps * 10 if settings.target_fps > 0 else 150
         self.frame_buffer = deque(maxlen=buffer_size)
+        
+        # Phase 22: Heatmap Accumulator
+        self.heatmap = None
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -128,16 +132,30 @@ class CameraWorker:
             tracked_objects = detector.detect_and_track(frame)
             self.active_tracks_count = len(tracked_objects)
             
-            # --- CALCULATE ZONE MEMBERSHIP ---
+            # --- CALCULATE ZONE MEMBERSHIP AND HEATMAP ---
             frame_height, frame_width = frame.shape[:2]
+            
+            # Initialize heatmap if needed
+            if self.heatmap is None or self.heatmap.shape[:2] != (frame_height, frame_width):
+                self.heatmap = np.zeros((frame_height, frame_width), dtype=np.float32)
+                
+            # Decay heatmap slightly to show recent traffic, or keep it accumulating. Let's do a slow decay.
+            self.heatmap *= 0.999 
             
             # Normalize coordinates for frontend rendering
             for t in tracked_objects:
                 if "bottom_center" in t:
+                    cx, cy = int(t["bottom_center"][0]), int(t["bottom_center"][1])
                     t["normalized_bottom_center"] = [
-                        t["bottom_center"][0] / frame_width,
-                        t["bottom_center"][1] / frame_height
+                        cx / frame_width,
+                        cy / frame_height
                     ]
+                    # Add to heatmap (using a simple gaussian-like brush or just a block)
+                    if 0 <= cy < frame_height and 0 <= cx < frame_width:
+                        # Draw a small circle intensity on a mask and add to heatmap
+                        temp_mask = np.zeros_like(self.heatmap)
+                        cv2.circle(temp_mask, (cx, cy), radius=20, color=1.0, thickness=-1)
+                        self.heatmap += temp_mask
             
             tracked_objects = zone_engine.calculate_zone_membership(
                 camera_id=self.camera_id, 
@@ -182,6 +200,22 @@ class CameraWorker:
             
             # --- DRAW FRAME FOR STREAMING ---
             display_frame = frame.copy()
+            
+            # Apply Heatmap Overlay (Phase 22)
+            if self.heatmap is not None:
+                # Normalize heatmap to 0-255
+                max_val = np.max(self.heatmap)
+                if max_val > 0:
+                    heatmap_norm = np.uint8(255 * (self.heatmap / max_val))
+                    # Apply colormap
+                    colored_heatmap = cv2.applyColorMap(heatmap_norm, cv2.COLORMAP_JET)
+                    
+                    # Create mask for where heatmap has data (intensity > 10)
+                    mask = heatmap_norm > 10
+                    
+                    # Blend only the colored regions
+                    display_frame[mask] = cv2.addWeighted(display_frame[mask], 0.5, colored_heatmap[mask], 0.5, 0)
+
             for track in tracked_objects:
                 x1, y1, x2, y2 = track["bbox"]
                 track_id = track["track_id"]

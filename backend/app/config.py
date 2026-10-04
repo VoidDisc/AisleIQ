@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     track_loss_timeout: float = 2.0
     min_visit_duration: float = 1.0
     
+    # Phase 23: Staff Uniform Exclusion (comma-separated colors, e.g. "red,blue")
+    staff_uniform_colors: str = ""
+    
     class Config:
         env_file = ".env"
 
