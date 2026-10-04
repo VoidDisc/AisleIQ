@@ -11,40 +11,54 @@ def get_visits():
 
 @router.get("/summary")
 def get_summary():
-    visits = visit_manager.history
-    total_visits = len(visits)
-    avg_dwell_time = sum(v.duration for v in visits) / total_visits if total_visits > 0 else 0
+    from app.database import SessionLocal
+    from app.models.models import VisitModel
+    from sqlalchemy.sql import func
     
-    return {
-        "total_visits": total_visits,
-        "average_dwell_time": avg_dwell_time
-    }
+    db = SessionLocal()
+    try:
+        total_visits = db.query(VisitModel).count()
+        avg_dwell = db.query(func.avg(VisitModel.duration)).scalar() or 0.0
+        
+        return {
+            "total_visits": total_visits,
+            "average_dwell_time": avg_dwell
+        }
+    finally:
+        db.close()
 
 @router.get("/history")
 def get_history():
-    from collections import defaultdict
-    visits = visit_manager.history
+    from app.database import SessionLocal
+    from app.models.models import VisitModel
+    from sqlalchemy.sql import func
     
-    # Group by zone
-    zone_stats = defaultdict(lambda: {"visits": 0, "total_duration": 0})
-    for v in visits:
-        zone_stats[v.zone_id]["visits"] += 1
-        zone_stats[v.zone_id]["total_duration"] += v.duration
+    db = SessionLocal()
+    try:
+        # Group by zone_id, get count and average duration
+        stats = db.query(
+            VisitModel.zone_id,
+            func.count(VisitModel.id).label("visits"),
+            func.avg(VisitModel.duration).label("avg_dwell_time")
+        ).group_by(VisitModel.zone_id).all()
         
-    result = []
-    for z_id, stats in zone_stats.items():
-        result.append({
-            "zone_id": z_id,
-            "visits": stats["visits"],
-            "avg_dwell_time": stats["total_duration"] / stats["visits"] if stats["visits"] > 0 else 0
-        })
-        
-    # If empty, return some placeholder data for demo so the chart isn't totally blank
-    if not result:
-        return [
-            {"zone_id": "Produce", "visits": 120, "avg_dwell_time": 45},
-            {"zone_id": "Dairy", "visits": 80, "avg_dwell_time": 20},
-            {"zone_id": "Bakery", "visits": 150, "avg_dwell_time": 60},
+        result = [
+            {
+                "zone_id": row.zone_id,
+                "visits": row.visits,
+                "avg_dwell_time": row.avg_dwell_time or 0.0
+            }
+            for row in stats if row.zone_id is not None
         ]
         
-    return result
+        # If empty, return some placeholder data for demo
+        if not result:
+            return [
+                {"zone_id": "Produce", "visits": 120, "avg_dwell_time": 45},
+                {"zone_id": "Dairy", "visits": 80, "avg_dwell_time": 20},
+                {"zone_id": "Bakery", "visits": 150, "avg_dwell_time": 60},
+            ]
+            
+        return result
+    finally:
+        db.close()

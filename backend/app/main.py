@@ -19,16 +19,23 @@ async def broadcast_loop():
             cameras_data = [c.model_dump() for c in camera_manager.get_cameras()]
             await event_manager.broadcast("cameras_update", cameras_data)
             
-            # Broadcast summary
-            visits = visit_manager.history
-            total_visits = len(visits)
-            avg_dwell_time = sum(v.duration for v in visits) / total_visits if total_visits > 0 else 0
+            # Broadcast summary from DB
+            from app.database import SessionLocal
+            from app.models.models import VisitModel
+            from sqlalchemy.sql import func
             
-            summary_data = {
-                "total_visits": total_visits,
-                "average_dwell_time": avg_dwell_time
-            }
-            await event_manager.broadcast("analytics_summary", summary_data)
+            db = SessionLocal()
+            try:
+                total_visits = db.query(VisitModel).count()
+                avg_dwell = db.query(func.avg(VisitModel.duration)).scalar() or 0.0
+                
+                summary_data = {
+                    "total_visits": total_visits,
+                    "average_dwell_time": avg_dwell
+                }
+                await event_manager.broadcast("analytics_summary", summary_data)
+            finally:
+                db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
