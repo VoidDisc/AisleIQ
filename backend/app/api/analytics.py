@@ -10,37 +10,49 @@ def get_visits():
     return visit_manager.history
 
 @router.get("/summary")
-def get_summary():
+def get_summary(hours: int = None):
     from app.database import SessionLocal
     from app.models.models import VisitModel
     from sqlalchemy.sql import func
+    from datetime import datetime, timedelta
     
     db = SessionLocal()
     try:
-        total_visits = db.query(VisitModel).count()
-        avg_dwell = db.query(func.avg(VisitModel.duration)).scalar() or 0.0
+        query = db.query(VisitModel)
+        if hours:
+            cutoff = datetime.utcnow() - timedelta(hours=hours)
+            query = query.filter(VisitModel.entry_time >= cutoff)
+            
+        total_visits = query.count()
+        avg_dwell = db.query(func.avg(VisitModel.duration)).filter(VisitModel.id.in_([v.id for v in query.all()])).scalar() if hours else db.query(func.avg(VisitModel.duration)).scalar()
         
         return {
             "total_visits": total_visits,
-            "average_dwell_time": avg_dwell
+            "average_dwell_time": avg_dwell or 0.0
         }
     finally:
         db.close()
 
 @router.get("/history")
-def get_history():
+def get_history(hours: int = None):
     from app.database import SessionLocal
     from app.models.models import VisitModel
     from sqlalchemy.sql import func
+    from datetime import datetime, timedelta
     
     db = SessionLocal()
     try:
-        # Group by zone_id, get count and average duration
-        stats = db.query(
+        query = db.query(
             VisitModel.zone_id,
             func.count(VisitModel.id).label("visits"),
             func.avg(VisitModel.duration).label("avg_dwell_time")
-        ).group_by(VisitModel.zone_id).all()
+        )
+        
+        if hours:
+            cutoff = datetime.utcnow() - timedelta(hours=hours)
+            query = query.filter(VisitModel.entry_time >= cutoff)
+            
+        stats = query.group_by(VisitModel.zone_id).all()
         
         result = [
             {

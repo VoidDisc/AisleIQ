@@ -9,8 +9,17 @@ export function Dashboard() {
   const [cameras, setCameras] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [timeFilter, setTimeFilter] = useState<'all' | '24h'>('all');
   const { data: wsData, connected } = useWebSocket('ws://localhost:8000/ws/live');
 
+  useEffect(() => {
+    // Initial fetch
+    const hoursParam = timeFilter === '24h' ? '?hours=24' : '';
+    api.get(`/analytics/summary${hoursParam}`).then(setSummary).catch(console.error);
+    api.get('/cameras').then(setCameras).catch(console.error);
+    api.get(`/analytics/history${hoursParam}`).then(setHistory).catch(console.error);
+    api.get('/alerts').then(setAlerts).catch(console.error);
+  }, [timeFilter]);
   const resolveAlert = async (id: number) => {
     try {
       await fetch(`http://localhost:8000/api/alerts/${id}/resolve`, { method: 'PUT' });
@@ -51,6 +60,14 @@ export function Dashboard() {
           <p className="text-textMuted mt-1">Monitor real-time shopper analytics.</p>
         </div>
         <div className="flex items-center gap-4">
+          <select 
+            value={timeFilter} 
+            onChange={(e) => setTimeFilter(e.target.value as any)}
+            className="bg-background border border-surfaceHighlight text-white text-sm rounded px-3 py-1.5 focus:outline-none"
+          >
+            <option value="all">All Time</option>
+            <option value="24h">Last 24 Hours</option>
+          </select>
           <a 
             href="http://localhost:8000/api/export/visits.csv" 
             target="_blank" 
