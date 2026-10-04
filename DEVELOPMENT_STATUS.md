@@ -1,7 +1,7 @@
 # Development Status
 
-## Current Phase: Phase 19 - Authentication and Authorization
-**Iteration**: 1 - User Model and JWT Infrastructure Setup
+## Current Phase: Phase 20 - Advanced Analytics & Demographics
+**Iteration**: 1 - Path Tracing and Heatmap preparation
 
 ### Completed Tasks
 - Baseline functionality verified (Phases 1-18).
