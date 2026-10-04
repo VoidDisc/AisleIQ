@@ -3,6 +3,33 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #F3F4F6;
+    --surface: #FFFFFF;
+    --surface-highlight: #E5E7EB;
+    --primary: #8B5CF6;
+    --primary-hover: #7C3AED;
+    --text: #111827;
+    --text-muted: #6B7280;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+  }
+
+  .dark {
+    --background: #121212;
+    --surface: #1E1E1E;
+    --surface-highlight: #2A2A2A;
+    --primary: #8B5CF6;
+    --primary-hover: #7C3AED;
+    --text: #E5E7EB;
+    --text-muted: #9CA3AF;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+  }
+}
+@layer base {
   body {
     @apply bg-background text-text font-sans antialiased;
   }

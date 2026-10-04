@@ -12,6 +12,7 @@ export function ZoneEditor() {
   const [points, setPoints] = useState<{x: number, y: number}[]>([]);
   const [viewMode, setViewMode] = useState<'edit' | 'heatmap' | 'spaghetti'>('edit');
   const [liveTracks, setLiveTracks] = useState<any[]>([]);
+  const [draggingPoint, setDraggingPoint] = useState<{ zoneId: string, pointIndex: number } | null>(null);
   const { data: wsData } = useWebSocket('ws://localhost:8000/ws/live');
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,12 +38,58 @@ export function ZoneEditor() {
     }
   }, [wsData, selectedCamera]);
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (viewMode !== 'edit' || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
+
+    // Check if clicking on an existing zone point
+    const threshold = 0.02; // Roughly 10-15px depending on size
+    for (const zone of zones) {
+      if (!zone.polygon) continue;
+      for (let i = 0; i < zone.polygon.length; i++) {
+        const [px, py] = zone.polygon[i];
+        if (Math.abs(px - x) < threshold && Math.abs(py - y) < threshold) {
+          setDraggingPoint({ zoneId: zone.id, pointIndex: i });
+          return; // Stop checking, we are dragging
+        }
+      }
+    }
+
+    // Otherwise, add a new point
     setPoints([...points, { x, y }]);
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!draggingPoint || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+    setZones(prev => prev.map(z => {
+      if (z.id === draggingPoint.zoneId) {
+        const newPoly = [...z.polygon];
+        newPoly[draggingPoint.pointIndex] = [x, y];
+        return { ...z, polygon: newPoly };
+      }
+      return z;
+    }));
+  };
+
+  const handleCanvasMouseUp = async () => {
+    if (draggingPoint) {
+      // Save the updated zone to backend
+      const updatedZone = zones.find(z => z.id === draggingPoint.zoneId);
+      if (updatedZone) {
+        try {
+          await api.put(`/zones/${updatedZone.id}`, updatedZone);
+        } catch (e) {
+          console.error("Failed to update zone polygon", e);
+        }
+      }
+      setDraggingPoint(null);
+    }
   };
 
   const handleSaveZone = async () => {
@@ -119,12 +166,25 @@ export function ZoneEditor() {
       ctx.stroke();
       
       // Label
-      ctx.fillStyle = 'white';
+      ctx.fillStyle = 'var(--text)';
       ctx.font = '14px Arial';
       const label = viewMode === 'heatmap' 
         ? `${zone.name} (${history.find(h => h.zone_id === zone.id)?.visits || 0} visits)`
         : zone.name;
       ctx.fillText(label, zone.polygon[0][0] * width + 5, zone.polygon[0][1] * height + 15);
+      
+      // Draw handles if in edit mode
+      if (viewMode === 'edit') {
+        zone.polygon.forEach((p: any) => {
+          ctx.beginPath();
+          ctx.arc(p[0] * width, p[1] * height, 6, 0, 2 * Math.PI);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+      }
     });
     
     // Draw current drawing points
@@ -236,12 +296,15 @@ export function ZoneEditor() {
                 ref={canvasRef} 
                 width={800} 
                 height={450} 
-                onClick={handleCanvasClick}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseUp}
                 className="relative z-10 w-full h-auto cursor-crosshair border border-primary/20 rounded bg-transparent"
                 style={{ aspectRatio: '16/9' }}
               />
             </div>
-            <p className="text-sm text-textMuted mt-2">Click on the feed to draw a polygon. You need at least 3 points.</p>
+            <p className="text-sm text-textMuted mt-2">Click on the feed to draw a polygon, or drag existing handles to modify zones.</p>
           </div>
           
           <div className="space-y-6">

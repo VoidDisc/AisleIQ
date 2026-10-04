@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
-import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map, LayoutGrid, LogOut } from 'lucide-react';
+import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map, LayoutGrid, LogOut, Sun, Moon } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { Cameras } from './pages/Cameras';
 import { ZoneEditor } from './pages/ZoneEditor';
@@ -9,13 +9,14 @@ import { LiveView } from './pages/LiveView';
 import { Login } from './pages/Login';
 import { api } from './api/client';
 import { useAuth, AuthProvider } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode, requireAdmin?: boolean }) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
-    return <div className="h-screen bg-background flex items-center justify-center text-white">Loading...</div>;
+    return <div className="h-screen bg-background flex items-center justify-center text-text">Loading...</div>;
   }
 
   if (!user) {
@@ -32,6 +33,7 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
 function MainLayout() {
   const [health, setHealth] = useState<string>('checking...');
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     api.get('/health')
@@ -47,12 +49,17 @@ function MainLayout() {
     }`;
 
   return (
-    <div className="flex h-screen bg-background text-text overflow-hidden">
+    <div className="flex h-screen bg-background text-text overflow-hidden transition-colors duration-200">
       {/* Sidebar */}
-      <aside className="w-64 bg-surface border-r border-surfaceHighlight p-4 flex flex-col">
-        <div className="flex items-center gap-2 mb-8 text-primary">
-          <Activity size={28} />
-          <h1 className="text-xl font-bold text-white">AisleIQ</h1>
+      <aside className="w-64 bg-surface border-r border-surfaceHighlight p-4 flex flex-col transition-colors duration-200">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2 text-primary">
+            <Activity size={28} />
+            <h1 className="text-xl font-bold text-text">AisleIQ</h1>
+          </div>
+          <button onClick={toggleTheme} className="text-textMuted hover:text-text transition-colors p-1 rounded-md hover:bg-surfaceHighlight">
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
         
         <nav className="flex-1 space-y-2">
@@ -85,7 +92,7 @@ function MainLayout() {
         <div className="mt-auto pt-4 border-t border-surfaceHighlight">
           <div className="flex items-center justify-between mb-4 text-sm">
             <span className="text-textMuted flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-success"></span> {user?.username} ({user?.role})</span>
-            <button onClick={logout} className="text-textMuted hover:text-white" title="Logout">
+            <button onClick={logout} className="text-textMuted hover:text-text" title="Logout">
               <LogOut size={16} />
             </button>
           </div>
@@ -112,14 +119,16 @@ function MainLayout() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<ProtectedRoute><MainLayout /></ProtectedRoute>} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<ProtectedRoute><MainLayout /></ProtectedRoute>} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

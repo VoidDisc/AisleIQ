@@ -75,3 +75,36 @@ def delete_zone(zone_id: str, camera_id: str, current_user: UserModel = Depends(
         
     zone_engine.remove_zone(camera_id, zone_id)
     return {"status": "deleted"}
+
+@router.put("/api/zones/{zone_id}", response_model=ZoneResponse)
+def update_zone(zone_id: str, zone_update: ZoneUpdate, current_user: UserModel = Depends(get_current_admin)):
+    db = SessionLocal()
+    try:
+        db_zone = db.query(ZoneModel).filter(ZoneModel.id == zone_id).first()
+        if not db_zone:
+            raise HTTPException(status_code=404, detail="Zone not found")
+            
+        if zone_update.name is not None:
+            db_zone.name = zone_update.name
+        if zone_update.polygon is not None:
+            db_zone.polygon_json = json.dumps(zone_update.polygon)
+        if zone_update.color is not None:
+            db_zone.color = zone_update.color
+        if zone_update.enabled is not None:
+            db_zone.enabled = zone_update.enabled
+            
+        db.commit()
+        db.refresh(db_zone)
+        
+        updated_response = ZoneResponse(
+            id=db_zone.id,
+            camera_id=db_zone.camera_id,
+            name=db_zone.name,
+            polygon=json.loads(db_zone.polygon_json),
+            color=db_zone.color,
+            enabled=db_zone.enabled
+        )
+        zone_engine.add_zone(updated_response) # overwrite existing
+        return updated_response
+    finally:
+        db.close()
