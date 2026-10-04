@@ -9,6 +9,7 @@ export function ZoneEditor() {
   const [zones, setZones] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneCapacity, setNewZoneCapacity] = useState<string>('0');
   const [points, setPoints] = useState<{x: number, y: number}[]>([]);
   const [viewMode, setViewMode] = useState<'edit' | 'heatmap' | 'spaghetti'>('edit');
   const [liveTracks, setLiveTracks] = useState<any[]>([]);
@@ -100,10 +101,12 @@ export function ZoneEditor() {
         name: newZoneName,
         camera_id: selectedCamera,
         polygon: points.map(p => [p.x, p.y]),
-        color: '#8B5CF6'
+        color: '#8B5CF6',
+        max_capacity: parseInt(newZoneCapacity) || 0
       });
       setPoints([]);
       setNewZoneName('');
+      setNewZoneCapacity('0');
       api.get(`/cameras/${selectedCamera}/zones`).then(setZones);
     } catch (e) {
       alert("Failed to save zone");
@@ -310,12 +313,25 @@ export function ZoneEditor() {
           <div className="space-y-6">
             <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
               <h3 className="text-lg font-bold text-white mb-4">New Zone</h3>
-              <input 
-                value={newZoneName} 
-                onChange={e => setNewZoneName(e.target.value)} 
-                placeholder="e.g. Endcap Display A"
-                className="w-full bg-background border border-surfaceHighlight rounded px-3 py-2 text-white mb-4"
-              />
+              <div className="flex gap-4 mb-4">
+                <input 
+                  value={newZoneName} 
+                  onChange={e => setNewZoneName(e.target.value)} 
+                  placeholder="e.g. Endcap Display A"
+                  className="flex-1 bg-background border border-surfaceHighlight rounded px-3 py-2 text-white"
+                />
+                <div className="w-1/3">
+                  <input 
+                    type="number"
+                    min="0"
+                    value={newZoneCapacity} 
+                    onChange={e => setNewZoneCapacity(e.target.value)} 
+                    placeholder="Max Capacity (0=∞)"
+                    title="Max Capacity (0=unlimited)"
+                    className="w-full bg-background border border-surfaceHighlight rounded px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button 
                   onClick={handleSaveZone}
@@ -341,7 +357,10 @@ export function ZoneEditor() {
                   <div key={z.id} className="flex items-center justify-between p-3 bg-background rounded border border-surfaceHighlight">
                     <div>
                       <p className="font-medium text-white">{z.name}</p>
-                      <p className="text-xs text-textMuted">{z.polygon.length} points</p>
+                      <p className="text-xs text-textMuted">
+                        {z.polygon.length} points
+                        {z.max_capacity > 0 && ` • Capacity: ${z.max_capacity}`}
+                      </p>
                     </div>
                     <button onClick={() => deleteZone(z.id)} className="text-danger p-2 hover:bg-surfaceHighlight rounded">
                       <Trash2 size={16} />

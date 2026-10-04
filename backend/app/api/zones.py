@@ -30,7 +30,8 @@ def create_zone(camera_id: str, zone: ZoneCreate, current_user: UserModel = Depe
             name=zone.name,
             polygon_json=json.dumps(zone.polygon),
             color=zone.color,
-            enabled=zone.enabled
+            enabled=zone.enabled,
+            max_capacity=zone.max_capacity
         )
         db.add(db_zone)
         db.commit()
@@ -56,7 +57,8 @@ def get_zones(camera_id: str, current_user: UserModel = Depends(get_current_user
                 name=z.name,
                 polygon=polygon,
                 color=z.color,
-                enabled=z.enabled
+                enabled=z.enabled,
+                max_capacity=z.max_capacity
             ))
         return result
     finally:
@@ -92,6 +94,8 @@ def update_zone(zone_id: str, zone_update: ZoneUpdate, current_user: UserModel =
             db_zone.color = zone_update.color
         if zone_update.enabled is not None:
             db_zone.enabled = zone_update.enabled
+        if zone_update.max_capacity is not None:
+            db_zone.max_capacity = zone_update.max_capacity
             
         db.commit()
         db.refresh(db_zone)
@@ -102,7 +106,8 @@ def update_zone(zone_id: str, zone_update: ZoneUpdate, current_user: UserModel =
             name=db_zone.name,
             polygon=json.loads(db_zone.polygon_json),
             color=db_zone.color,
-            enabled=db_zone.enabled
+            enabled=db_zone.enabled,
+            max_capacity=db_zone.max_capacity
         )
         zone_engine.add_zone(updated_response) # overwrite existing
         return updated_response

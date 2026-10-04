@@ -76,6 +76,31 @@ class VisitManager:
                     
         for track_id in lost_tracks:
             del cam_sessions[track_id]
+            
+        # Phase 25: Crowd Density / Queue limit check
+        from app.services.zone_engine import zone_engine
+        occupancy_by_zone = {}
+        for session in cam_sessions.values():
+            if session.zone_id:
+                occupancy_by_zone[session.zone_id] = occupancy_by_zone.get(session.zone_id, 0) + 1
+                
+        for zone_id, count in occupancy_by_zone.items():
+            zone = zone_engine.zones.get(camera_id, {}).get(zone_id)
+            if zone and hasattr(zone, 'max_capacity') and zone.max_capacity and zone.max_capacity > 0:
+                if count > zone.max_capacity:
+                    # Check cooldown to avoid spamming
+                    last_alert_time = getattr(self, '_last_crowd_alert', {}).get(zone_id, 0)
+                    if current_time.timestamp() - last_alert_time > 60:
+                        if not hasattr(self, '_last_crowd_alert'):
+                            self._last_crowd_alert = {}
+                        self._last_crowd_alert[zone_id] = current_time.timestamp()
+                        
+                        self._create_alert(
+                            alert_type="crowd",
+                            message=f"Overcrowding detected in {zone.name} ({count}/{zone.max_capacity} people)",
+                            zone_id=zone_id,
+                            camera_id=camera_id
+                        )
 
     def handle_camera_stop(self, camera_id: str, current_time: datetime):
         """Close all active sessions for a stopped camera."""

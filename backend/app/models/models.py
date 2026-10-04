@@ -26,6 +26,7 @@ class ZoneModel(Base):
     polygon_json = Column(Text) # Store as JSON string since SQLite doesn't have native arrays
     color = Column(String)
     enabled = Column(Boolean, default=True)
+    max_capacity = Column(Integer, default=0)
 
     camera = relationship("CameraModel", back_populates="zones")
     visits = relationship("VisitModel", back_populates="zone", cascade="all, delete-orphan")

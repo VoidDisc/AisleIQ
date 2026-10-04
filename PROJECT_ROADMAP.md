@@ -64,3 +64,7 @@ AisleIQ is an end-to-end Computer Vision analytics platform built for retail and
 ### Phase 24: Cloud & Edge Scalability
 *   **PostgreSQL Migration:** Migrate the SQLAlchemy configuration from local SQLite to a distributed PostgreSQL database.
 *   **Kafka/RabbitMQ:** Decouple the `event_manager` WebSockets to scale across multiple backend container instances.
+
+### Phase 25: Queue Management & Overcrowding
+*   **Capacity Limits:** Allow users to define a `max_capacity` limit on individual tracking zones.
+*   **Crowd Alerts:** Trigger an immediate alert if the number of simultaneous dwell sessions inside a zone exceeds its configured threshold.
