@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Activity, LayoutDashboard, Settings as SettingsIcon, Video } from 'lucide-react';
+import { Activity, LayoutDashboard, Settings as SettingsIcon, Video, Map } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { Cameras } from './pages/Cameras';
+import { ZoneEditor } from './pages/ZoneEditor';
 import { api } from './api/client';
 
 function App() {
@@ -40,6 +41,10 @@ function App() {
               <Video size={20} />
               <span>Cameras</span>
             </NavLink>
+            <NavLink to="/zones" className={navClass}>
+              <Map size={20} />
+              <span>Zone Editor</span>
+            </NavLink>
             <NavLink to="/settings" className={navClass}>
               <SettingsIcon size={20} />
               <span>Settings</span>
@@ -59,6 +64,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/cameras" element={<Cameras />} />
+            <Route path="/zones" element={<ZoneEditor />} />
             <Route path="/settings" element={<div className="text-white">Settings Placeholder</div>} />
           </Routes>
         </main>
