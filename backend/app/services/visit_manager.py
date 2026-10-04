@@ -86,7 +86,29 @@ class VisitManager:
         if session.duration >= settings.min_visit_duration or status == "interrupted":
             session.status = status
             self.history.append(session)
-            # In Phase 5, we will persist this to SQLite here
+            
+            # Persist to database
+            from app.database import SessionLocal
+            from app.models.models import VisitModel
+            
+            db = SessionLocal()
+            try:
+                db_visit = VisitModel(
+                    id=session.id,
+                    camera_id=session.camera_id,
+                    zone_id=session.zone_id,
+                    track_id=session.track_id,
+                    entry_time=session.entry_time,
+                    exit_time=session.exit_time,
+                    duration=session.duration,
+                    status=session.status
+                )
+                db.add(db_visit)
+                db.commit()
+            except Exception as e:
+                logger.error(f"Failed to persist visit {session.id}: {e}")
+            finally:
+                db.close()
         else:
             # Drop short sessions
             pass
