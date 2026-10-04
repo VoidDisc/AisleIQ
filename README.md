@@ -11,7 +11,16 @@ AisleIQ is a retail CCTV analytics platform prototype. It uses Computer Vision (
 
 ## Setup Instructions
 
-### 1. Backend (Python/FastAPI)
+### Option A: Docker Compose (Recommended)
+You can launch the entire stack (Frontend + Backend) with a single command:
+```bash
+docker-compose up --build -d
+```
+The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:8000`.
+
+### Option B: Local Setup
+
+#### 1. Backend (Python/FastAPI)
 ```bash
 cd backend
 python3 -m venv venv
