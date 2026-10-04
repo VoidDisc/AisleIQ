@@ -12,6 +12,7 @@ export function Settings() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [armed, setArmed] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [refreshingLogs, setRefreshingLogs] = useState(false);
 
@@ -28,6 +29,8 @@ export function Settings() {
       setSettings(data);
       setLoading(false);
     }).catch(console.error);
+    
+    api.get('/security/status').then(data => setArmed(data.armed)).catch(console.error);
     
     fetchLogs();
   }, []);
@@ -47,16 +50,36 @@ export function Settings() {
       });
     }
     setSaving(false);
+    setSaving(false);
     alert('Settings saved successfully!');
+  };
+
+  const toggleArmed = async () => {
+    try {
+      const endpoint = armed ? '/security/disarm' : '/security/arm';
+      await api.post(endpoint, {});
+      setArmed(!armed);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to toggle security system');
+    }
   };
 
   if (loading) return <div className="text-white">Loading...</div>;
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white">System Settings</h2>
-        <p className="text-textMuted mt-1">Configure computer vision and tracking parameters.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">System Settings</h2>
+          <p className="text-textMuted mt-1">Configure computer vision and tracking parameters.</p>
+        </div>
+        <button 
+          onClick={toggleArmed}
+          className={`px-4 py-2 rounded font-bold shadow-lg transition-colors ${armed ? 'bg-danger hover:bg-danger/80 text-white animate-pulse' : 'bg-surface border border-surfaceHighlight text-white hover:bg-surfaceHighlight'}`}
+        >
+          {armed ? '🛡️ SYSTEM ARMED' : 'Disarmed'}
+        </button>
       </div>
 
       <form onSubmit={handleSave} className="bg-surface p-6 rounded-lg border border-surfaceHighlight space-y-6">

@@ -97,8 +97,9 @@ app.include_router(stream.router)
 app.include_router(alerts.router)
 app.include_router(logs.router)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-from app.api import webhooks
+from app.api import webhooks, security
 app.include_router(webhooks.router)
+app.include_router(security.router)
 
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):

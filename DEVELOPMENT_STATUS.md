@@ -1,7 +1,7 @@
 # Development Status
 
-## Current Phase: Phase 26 - POS & Business Metrics Integration
-**Iteration**: 1 - Webhook and UI Widgets
+## Current Phase: Phase 27 - Advanced Security & Intrusion Detection
+**Iteration**: 1 - Intrusion logic and Arming UI
 
 ### Completed Tasks
 - Baseline functionality verified (Phases 1-18).

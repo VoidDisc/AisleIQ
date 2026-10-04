@@ -13,6 +13,7 @@ class VisitManager:
         self.active_sessions: Dict[str, Dict[int, VisitSession]] = {}
         # Simple in-memory history for prototype
         self.history: List[VisitSession] = []
+        self.is_armed: bool = False
 
     def process_observations(self, camera_id: str, tracks: List[dict], current_time: datetime):
         if camera_id not in self.active_sessions:
@@ -110,7 +111,7 @@ class VisitManager:
             self.active_sessions[camera_id].clear()
 
     def _create_session(self, camera_id: str, zone_id: Optional[str], track_id: int, entry_time: datetime, initial_point: Optional[List[float]] = None, color: Optional[str] = None) -> VisitSession:
-        return VisitSession(
+        session = VisitSession(
             id=str(uuid.uuid4()),
             camera_id=camera_id,
             zone_id=zone_id,
@@ -119,6 +120,17 @@ class VisitManager:
             dominant_color=color,
             path=[initial_point] if initial_point else []
         )
+        
+        # Phase 27: Intrusion Detection
+        if self.is_armed:
+            self._create_alert(
+                alert_type="intrusion",
+                message=f"INTRUSION DETECTED! Person {track_id} entered during armed hours.",
+                zone_id=zone_id or "Unknown",
+                camera_id=camera_id
+            )
+            
+        return session
         
     def _close_session(self, session: VisitSession, exit_time: datetime, status: str):
         session.exit_time = exit_time

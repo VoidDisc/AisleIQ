@@ -73,3 +73,7 @@ AisleIQ is an end-to-end Computer Vision analytics platform built for retail and
 *   **Webhook Ingestion:** Create `/api/webhooks/pos` to ingest real-time sales transactions from external registers.
 *   **Conversion Analytics:** Correlate the total number of unique store visits with total transaction volume.
 *   **Business Dashboard:** Introduce `Revenue` and `Conversion Rate` UI widgets to the primary Dashboard.
+
+### Phase 27: Advanced Security - Intrusion Detection
+*   **System Arming:** Allow admins to "Arm" the analytics system during off-hours.
+*   **Zero-Dwell Intrusion Alerts:** If the system is armed, bypass the standard dwell-time rules and instantly trigger a critical "INTRUSION DETECTED" alert the moment any person is detected in the camera feed.
