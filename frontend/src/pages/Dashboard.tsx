@@ -69,24 +69,36 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-surface p-6 rounded-lg border border-surfaceHighlight">
-          <h3 className="text-lg font-bold text-white mb-4">Camera Status</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Live Camera Feeds</h3>
           <div className="space-y-4">
             {cameras.length === 0 && <p className="text-textMuted">No cameras configured.</p>}
             {cameras.map(cam => (
-              <div key={cam.id} className="flex items-center justify-between p-4 bg-background rounded-md border border-surfaceHighlight">
-                <div>
-                  <p className="font-medium text-white">{cam.name}</p>
-                  <p className="text-sm text-textMuted font-mono">{cam.id.split('-')[0]}</p>
+              <div key={cam.id} className="bg-background rounded-md border border-surfaceHighlight overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-surfaceHighlight">
+                  <div>
+                    <p className="font-medium text-white">{cam.name}</p>
+                    <p className="text-sm text-textMuted font-mono">{cam.id.split('-')[0]}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-white">Status: <span className={cam.status === 'running' ? 'text-success' : 'text-warning'}>{cam.status}</span></p>
+                    {cam.status === 'running' && (
+                      <p className="text-xs text-textMuted mt-1">FPS: {cam.processing_fps.toFixed(1)} | Tracks: {cam.active_tracks}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-white">Status: <span className={cam.status === 'running' ? 'text-success' : 'text-warning'}>{cam.status}</span></p>
-                  {cam.status === 'running' && (
-                    <>
-                      <p className="text-xs text-textMuted mt-1">FPS: {cam.processing_fps.toFixed(1)}</p>
-                      <p className="text-xs text-textMuted">Tracks: {cam.active_tracks}</p>
-                    </>
-                  )}
-                </div>
+                {cam.status === 'running' && (
+                  <div className="relative aspect-video bg-black flex items-center justify-center">
+                    <img 
+                      src={`http://localhost:8000/api/stream/${cam.id}`} 
+                      alt={`Live feed from ${cam.name}`}
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-2 right-2 flex items-center gap-2 px-2 py-1 bg-black/60 rounded text-xs text-white">
+                      <span className="w-2 h-2 rounded-full bg-danger animate-pulse"></span>
+                      LIVE
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

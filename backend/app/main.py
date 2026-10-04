@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
-from app.api import cameras, zones, analytics, settings as settings_api, export
+from app.api import cameras, zones, analytics, settings as settings_api, export, stream
 from app.database import engine, Base
 from app.models import models
 from app.services.event_manager import event_manager
@@ -65,6 +65,7 @@ app.include_router(zones.router)
 app.include_router(analytics.router)
 app.include_router(settings_api.router)
 app.include_router(export.router)
+app.include_router(stream.router)
 
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):

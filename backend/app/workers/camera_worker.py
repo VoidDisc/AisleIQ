@@ -27,6 +27,7 @@ class CameraWorker:
         self.capture: Optional[cv2.VideoCapture] = None
         
         self.active_tracks_count = 0
+        self.latest_frame = None
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -137,6 +138,21 @@ class CameraWorker:
                 tracks=tracked_objects, 
                 current_time=current_time
             )
+            
+            # --- DRAW FRAME FOR STREAMING ---
+            display_frame = frame.copy()
+            for track in tracked_objects:
+                x1, y1, x2, y2 = track["bbox"]
+                track_id = track["track_id"]
+                cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+                cv2.putText(display_frame, f"ID: {track_id}", (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+                # Draw zone membership if any
+                if track.get("zone_id"):
+                    cv2.putText(display_frame, f"Zone: {track['zone_id']}", (int(x1), int(y2) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+            
+            _, buffer = cv2.imencode('.jpg', display_frame)
+            self.latest_frame = buffer.tobytes()
             
             # Sleep to maintain target FPS
             sleep_time = frame_time - (time.time() - start_time)
