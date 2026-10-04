@@ -17,7 +17,7 @@ def export_visits_csv(current_user: UserModel = Depends(get_current_admin)):
         
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Camera ID", "Zone ID", "Track ID", "Entry Time", "Exit Time", "Duration (s)", "Status"])
+        writer.writerow(["ID", "Camera ID", "Zone ID", "Track ID", "Entry Time", "Exit Time", "Duration (s)", "Status", "Dominant Color"])
         
         for v in visits:
             writer.writerow([
@@ -28,7 +28,8 @@ def export_visits_csv(current_user: UserModel = Depends(get_current_admin)):
                 v.entry_time.isoformat() if v.entry_time else "",
                 v.exit_time.isoformat() if v.exit_time else "",
                 v.duration,
-                v.status
+                v.status,
+                v.dominant_color or "Unknown"
             ])
             
         output.seek(0)

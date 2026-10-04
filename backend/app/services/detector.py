@@ -52,12 +52,48 @@ class Detector:
             bottom_cx = cx
             bottom_cy = y2
             
+            # Extract dominant color (stub for clothing color)
+            # Take a small patch from the upper body (approx middle of top half)
+            color_name = "Unknown"
+            try:
+                import cv2
+                import numpy as np
+                patch_y1 = int(y1 + (y2 - y1) * 0.2)
+                patch_y2 = int(y1 + (y2 - y1) * 0.5)
+                patch_x1 = int(x1 + (x2 - x1) * 0.3)
+                patch_x2 = int(x1 + (x2 - x1) * 0.7)
+                
+                if patch_y2 > patch_y1 and patch_x2 > patch_x1:
+                    patch = frame[patch_y1:patch_y2, patch_x1:patch_x2]
+                    if patch.size > 0:
+                        # Simple average color (BGR)
+                        avg_color_per_row = np.average(patch, axis=0)
+                        avg_color = np.average(avg_color_per_row, axis=0)
+                        b, g, r = avg_color
+                        
+                        # Basic classification
+                        if r > g + 20 and r > b + 20:
+                            color_name = "Red"
+                        elif b > r + 20 and b > g + 20:
+                            color_name = "Blue"
+                        elif g > r + 20 and g > b + 20:
+                            color_name = "Green"
+                        elif r > 200 and g > 200 and b > 200:
+                            color_name = "White"
+                        elif r < 50 and g < 50 and b < 50:
+                            color_name = "Black"
+                        else:
+                            color_name = "Mixed"
+            except Exception as e:
+                logger.error(f"Color extraction failed: {e}")
+
             tracked_objects.append({
                 "track_id": track_id,
                 "confidence": conf,
                 "bbox": [x1, y1, x2, y2],
                 "center": [cx, cy],
-                "bottom_center": [bottom_cx, bottom_cy]
+                "bottom_center": [bottom_cx, bottom_cy],
+                "dominant_color": color_name
             })
             
         return tracked_objects

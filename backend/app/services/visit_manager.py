@@ -31,6 +31,14 @@ class VisitManager:
             if track_id in cam_sessions:
                 session = cam_sessions[track_id]
                 
+                # Append coordinates
+                if "normalized_bottom_center" in track:
+                    session.path.append(track["normalized_bottom_center"])
+                
+                # Update dominant color if present and not unknown
+                if track.get("dominant_color") and track.get("dominant_color") != "Unknown":
+                    session.dominant_color = track.get("dominant_color")
+                    
                 # Did the person change zones or leave all zones?
                 if session.zone_id != zone_id:
                     self._close_session(session, current_time, "completed")
@@ -38,14 +46,13 @@ class VisitManager:
                     
                     # Start new session if they entered a new zone
                     if zone_id:
-                        cam_sessions[track_id] = self._create_session(camera_id, zone_id, track_id, current_time)
+                        cam_sessions[track_id] = self._create_session(camera_id, zone_id, track_id, current_time, track.get("normalized_bottom_center"), track.get("dominant_color"))
                 else:
                     # Update duration for active session
                     session.duration = (current_time - session.entry_time).total_seconds()
             else:
-                # Not currently in a session
-                if zone_id:
-                    cam_sessions[track_id] = self._create_session(camera_id, zone_id, track_id, current_time)
+                # Not currently in a session (or just started)
+                cam_sessions[track_id] = self._create_session(camera_id, zone_id, track_id, current_time, track.get("normalized_bottom_center"), track.get("dominant_color"))
 
         # Handle track loss (timeout)
         lost_tracks = []
@@ -70,13 +77,15 @@ class VisitManager:
                 self._close_session(session, current_time, "interrupted")
             self.active_sessions[camera_id].clear()
 
-    def _create_session(self, camera_id: str, zone_id: str, track_id: int, entry_time: datetime) -> VisitSession:
+    def _create_session(self, camera_id: str, zone_id: Optional[str], track_id: int, entry_time: datetime, initial_point: Optional[List[float]] = None, color: Optional[str] = None) -> VisitSession:
         return VisitSession(
             id=str(uuid.uuid4()),
             camera_id=camera_id,
             zone_id=zone_id,
             track_id=track_id,
-            entry_time=entry_time
+            entry_time=entry_time,
+            dominant_color=color,
+            path=[initial_point] if initial_point else []
         )
         
     def _close_session(self, session: VisitSession, exit_time: datetime, status: str):
@@ -110,7 +119,8 @@ class VisitManager:
                     entry_time=session.entry_time,
                     exit_time=session.exit_time,
                     duration=session.duration,
-                    status=session.status
+                    status=session.status,
+                    dominant_color=session.dominant_color
                 )
                 db.add(db_visit)
                 db.commit()

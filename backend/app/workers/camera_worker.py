@@ -28,6 +28,7 @@ class CameraWorker:
         
         self.active_tracks_count = 0
         self.latest_frame = None
+        self.latest_tracks = []
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -124,6 +125,15 @@ class CameraWorker:
             
             # --- CALCULATE ZONE MEMBERSHIP ---
             frame_height, frame_width = frame.shape[:2]
+            
+            # Normalize coordinates for frontend rendering
+            for t in tracked_objects:
+                if "bottom_center" in t:
+                    t["normalized_bottom_center"] = [
+                        t["bottom_center"][0] / frame_width,
+                        t["bottom_center"][1] / frame_height
+                    ]
+            
             tracked_objects = zone_engine.calculate_zone_membership(
                 camera_id=self.camera_id, 
                 tracks=tracked_objects, 
@@ -138,6 +148,32 @@ class CameraWorker:
                 tracks=tracked_objects, 
                 current_time=current_time
             )
+            
+            # --- BROADCAST LIVE TRACKS (SPAGHETTI MAPS) ---
+            try:
+                import asyncio
+                from app.services.event_manager import event_manager
+                active_sessions = visit_manager.active_sessions.get(self.camera_id, {})
+                tracks_data = [
+                    {
+                        "track_id": s.track_id, 
+                        "zone_id": s.zone_id, 
+                        "path": s.path,
+                        "duration": s.duration
+                    } for s in active_sessions.values()
+                ]
+                
+                # Check if running in async loop (we aren't usually in this thread, so we must dispatch it safely)
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(event_manager.broadcast("tracks_update", {"camera_id": self.camera_id, "tracks": tracks_data}))
+                except RuntimeError:
+                    # If no running event loop, we might need to dispatch to the main loop differently, or rely on a polling mechanism.
+                    # Since this is a standalone thread, we can't easily await. 
+                    # A better way is to pull this in `broadcast_loop` in main.py, but for now we'll store it on `self`.
+                    self.latest_tracks = tracks_data
+            except Exception as e:
+                logger.error(f"Error broadcasting tracks: {e}")
             
             # --- DRAW FRAME FOR STREAMING ---
             display_frame = frame.copy()

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
-import { Trash2 } from 'lucide-react';
+import { Trash2, TrendingUp } from 'lucide-react';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export function ZoneEditor() {
   const [cameras, setCameras] = useState<any[]>([]);
@@ -9,7 +10,9 @@ export function ZoneEditor() {
   const [history, setHistory] = useState<any[]>([]);
   const [newZoneName, setNewZoneName] = useState('');
   const [points, setPoints] = useState<{x: number, y: number}[]>([]);
-  const [viewMode, setViewMode] = useState<'edit' | 'heatmap'>('edit');
+  const [viewMode, setViewMode] = useState<'edit' | 'heatmap' | 'spaghetti'>('edit');
+  const [liveTracks, setLiveTracks] = useState<any[]>([]);
+  const { data: wsData } = useWebSocket('ws://localhost:8000/ws/live');
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -26,6 +29,13 @@ export function ZoneEditor() {
       api.get(`/cameras/${selectedCamera}/zones`).then(setZones).catch(console.error);
     }
   }, [selectedCamera]);
+
+  useEffect(() => {
+    if (wsData && wsData.type === 'live_tracks') {
+      const cameraTracks = wsData.data[selectedCamera] || [];
+      setLiveTracks(cameraTracks);
+    }
+  }, [wsData, selectedCamera]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
@@ -144,7 +154,35 @@ export function ZoneEditor() {
         ctx.stroke();
       });
     }
-  }, [points, zones]);
+
+    // Draw spaghetti maps
+    if (viewMode === 'spaghetti' && liveTracks.length > 0) {
+      liveTracks.forEach(track => {
+        if (!track.path || track.path.length < 2) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(track.path[0][0] * width, track.path[0][1] * height); // Note: now uses normalized coords
+        for (let i = 1; i < track.path.length; i++) {
+          ctx.lineTo(track.path[i][0] * width, track.path[i][1] * height);
+        }
+        
+        // Random color based on track_id for visual distinction
+        const hue = (track.track_id * 137.5) % 360;
+        ctx.strokeStyle = `hsla(${hue}, 80%, 60%, 0.6)`;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        // Draw head point
+        const lastPoint = track.path[track.path.length - 1];
+        ctx.beginPath();
+        ctx.arc(lastPoint[0] * width, lastPoint[1] * height, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+        ctx.fill();
+      });
+    }
+  }, [points, zones, viewMode, history, liveTracks]);
 
   return (
     <div>
@@ -165,6 +203,12 @@ export function ZoneEditor() {
             onClick={() => setViewMode('heatmap')}
           >
             Heatmaps
+          </button>
+          <button 
+            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'spaghetti' ? 'bg-surface text-white shadow' : 'text-textMuted hover:text-white'}`}
+            onClick={() => setViewMode('spaghetti')}
+          >
+            <TrendingUp size={16} /> Spaghetti Maps
           </button>
         </div>
       </div>

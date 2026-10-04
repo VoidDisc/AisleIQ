@@ -41,6 +41,7 @@ class VisitModel(Base):
     exit_time = Column(DateTime, nullable=True)
     duration = Column(Float, default=0.0)
     status = Column(String)
+    dominant_color = Column(String, nullable=True)
 
     camera = relationship("CameraModel", back_populates="visits")
     zone = relationship("ZoneModel", back_populates="visits")

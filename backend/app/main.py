@@ -30,6 +30,15 @@ async def broadcast_loop():
             cameras_data = [c.model_dump() for c in camera_manager.get_cameras()]
             await event_manager.broadcast("cameras_update", cameras_data)
             
+            # Broadcast live tracks for Phase 20 Path Tracing
+            all_tracks = {}
+            for cam_id, worker in camera_manager.workers.items():
+                if hasattr(worker, 'latest_tracks'):
+                    all_tracks[cam_id] = worker.latest_tracks
+            if all_tracks:
+                await event_manager.broadcast("live_tracks", all_tracks)
+            
+            
             # Broadcast summary from DB
             from app.database import SessionLocal
             from app.models.models import VisitModel
